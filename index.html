@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>拼砌大師 — 小學四年級數學互動教學遊戲</title>
+<style>
+  :root {
+    --bg-grad: linear-gradient(135deg, #FEF9C3 0%, #E0F2FE 52%, #EDE9FE 100%);
+    --navy: #1E1B4B;
+    --purple: #5B21B6;
+    --border-w: 3px;
+  }
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+  body {
+    margin: 0;
+    font-family: "PingFang HK", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg-grad);
+    color: var(--navy);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  /* 頂部狀態欄 */
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  .brand-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .logo-tiles { display: flex; gap: 4px; }
+  .tile {
+    width: 34px; height: 34px; border: 2.5px solid var(--navy); border-radius: 9px;
+    font-weight: 900; font-size: 18px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 0 var(--navy);
+  }
+  .tile:nth-child(1) { background: #FDBA74; }
+  .tile:nth-child(2) { background: #FDE047; }
+  .tile:nth-child(3) { background: #93C5FD; }
+  .tile:nth-child(4) { background: #C4B5FD; }
+  .pill {
+    background: #FFF; border: 2.5px solid var(--navy); border-radius: 999px;
+    padding: 5px 13px; font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 2px 0 var(--navy); cursor: pointer;
+  }
+  .pill:active { transform: translateY(1px); }
+  .pill.score { background: #FEF3C7; color: #92400E; cursor: default; }
+  .progress-wrap {
+    display: flex; align-items: center; gap: 8px; background: #FFF; border: 2.5px solid var(--navy);
+    border-radius: 999px; padding: 5px 14px; font-size: 13px; font-weight: 800; box-shadow: 0 2px 0 var(--navy);
+  }
+  .progress-bar { width: 72px; height: 9px; background: #E2E8F0; border-radius: 999px; overflow: hidden; border: 1.5px solid var(--navy); }
+  .progress-fill { height: 100%; background: #10B981; width: 0%; transition: width 0.3s; }
+  .mode-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mode-btn {
+    background: #FFF; border: 2.5px solid var(--navy); border-radius: 14px;
+    padding: 7px 14px; font-weight: 800; font-size: 14px; cursor: pointer;
+    box-shadow: 0 3px 0 var(--navy); display: flex; align-items: center; gap: 6px;
+  }
+  .mode-btn.active { background: #FDE047; transform: translateY(1px); box-shadow: 0 2px 0 var(--navy); }
+
+  /* 主工作區網格 */
+  .main-grid { flex: 1; display: grid; grid-template-columns: 1.38fr 1fr; gap: 12px; min-height: 0; }
+  @media (max-width: 960px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* 左側方格畫布卡片 */
+  .board-card {
+    background: #FFF; border: var(--border-w) solid var(--navy); border-radius: 20px;
+    display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 0 var(--navy);
+  }
+  .board-header {
+    background: #4C1D95; color: #FFF; padding: 8px 14px;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .q-counter { font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+  .solved-badge { background: #10B981; color: #FFF; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1.5px solid #FFF; }
+  .diff-filters { display: flex; gap: 5px; align-items: center; }
+  .diff-btn {
+    background: #FFF; color: var(--navy); border: 2px solid var(--navy); border-radius: 999px;
+    padding: 3px 10px; font-size: 12px; font-weight: 800; cursor: pointer;
+  }
+  .diff-btn.active { background: #1E1B4B; color: #FDE047; border-color: #FDE047; }
+  .canvas-area {
+    flex: 1; position: relative; background: #FFFDF7;
+    display: flex; align-items: center; justify-content: center; min-height: 430px; overflow: hidden;
+  }
+  .canvas-tip-top {
+    position: absolute; top: 10px; left: 12px; background: rgba(241, 245, 249, 0.94);
+    border: 1.5px solid #CBD5E1; border-radius: 999px; padding: 4px 12px;
+    font-size: 12px; font-weight: 700; color: #475569; pointer-events: none; z-index: 5;
+  }
+  .diff-tag-top {
+    position: absolute; top: 10px; right: 12px; background: #F1F5F9; border: 1.5px solid #94A3B8;
+    border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; color: #334155;
+    pointer-events: none; z-index: 5;
+  }
+  svg#geoCanvas { width: 100%; height: 100%; max-width: 650px; max-height: 500px; touch-action: none; }
+  .board-footer {
+    border-top: 2px solid #E2E8F0; padding: 7px 14px; background: #F8FAFC;
+    display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: #475569;
+  }
+
+  /* 右側互動與反饋面板 */
+  .side-col { display: flex; flex-direction: column; gap: 10px; }
+  .panel-box {
+    background: #FFF; border: var(--border-w) solid var(--navy); border-radius: 18px;
+    padding: 12px 14px; box-shadow: 0 3px 0 var(--navy);
+  }
+  .tag-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .mode-pill { background: #6D28D9; color: #FFF; font-size: 12px; font-weight: 800; padding: 3px 11px; border-radius: 999px; }
+  .cat-pill { background: #F1F5F9; color: #475569; border: 1.5px solid #CBD5E1; font-size: 11.5px; font-weight: 800; padding: 2px 9px; border-radius: 999px; }
+  .prompt-text { font-size: 17.5px; font-weight: 900; line-height: 1.52; margin: 4px 0 8px 0; color: var(--navy); }
+  .kw-token { display: inline-block; padding: 0 3px; border-radius: 6px; cursor: pointer; transition: background 0.12s; }
+  .kw-token:hover { background: #FEF08A; }
+  .kw-token.circled { border: 2.5px solid #DC2626; background: #FEE2E2; color: #991B1B; padding: 0 5px; margin: 0 1px; }
+  .kw-toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: #F3E8FF; padding: 5px 10px; border-radius: 10px; font-size: 12px; font-weight: 800; color: #5B21B6; }
+  .kw-btn { border: 1.5px solid var(--navy); border-radius: 999px; padding: 2px 9px; font-size: 11.5px; font-weight: 800; cursor: pointer; background: #FFF; }
+  .kw-btn.active { background: #6D28D9; color: #FFF; }
+  .hint-sub { font-size: 12px; color: #64748B; font-weight: 700; margin-top: 6px; }
+
+  .mc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mc-opt {
+    background: #F8FAFC; border: 2.5px solid var(--navy); border-radius: 12px;
+    padding: 10px 12px; font-size: 14.5px; font-weight: 800; text-align: left;
+    cursor: pointer; box-shadow: 0 2px 0 var(--navy); transition: all 0.12s;
+  }
+  .mc-opt:hover { background: #EFF6FF; }
+  .mc-opt.correct { background: #DCFCE7; border-color: #15803D; color: #14532D; }
+  .mc-opt.wrong { background: #FEE2E2; border-color: #DC2626; color: #7F1D1D; }
+
+  .piece-rack { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .piece-chip { background: #EFF6FF; border: 2px solid #1D4ED8; color: #1E3A8A; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; }
+  .piece-chip.selected { background: #1D4ED8; color: #FFF; }
+  .btn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .act-btn {
+    background: #FFF; border: 2.5px solid var(--navy); border-radius: 12px;
+    padding: 8px 10px; font-size: 14px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 2px 0 var(--navy); display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .act-btn:active { transform: translateY(1px); }
+  .act-btn.amber { background: #FEF3C7; }
+  .act-btn.green { background: #10B981; color: #FFF; font-size: 15px; width: 100%; padding: 10px; margin-bottom: 8px; }
+  .act-btn.lavender { background: #EDE9FE; color: #4C1D95; width: 100%; padding: 8px; }
+
+  .feedback-box {
+    border: 2px solid #CBD5E1; background: #F8FAFC; border-radius: 12px;
+    padding: 9px 12px; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.45;
+  }
+  .feedback-box.ok { border-color: #15803D; background: #DCFCE7; color: #14532D; }
+  .feedback-box.err { border-color: #DC2626; background: #FEE2E2; color: #7F1D1D; }
+  .fb-icon {
+    width: 28px; height: 28px; border-radius: 8px; background: #FDE047;
+    border: 2px solid var(--navy); display: flex; align-items: center; justify-content: center;
+    font-weight: 900; flex-shrink: 0;
+  }
+  .nav-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+  .nav-btn { background: #FFF; border: 2.5px solid var(--navy); border-radius: 12px; padding: 7px 14px; font-weight: 800; font-size: 13.5px; cursor: pointer; box-shadow: 0 2px 0 var(--navy); }
+  .nav-btn.primary { background: #4F46E5; color: #FFF; }
+  .q-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: 270px; }
+  .q-dot {
+    width: 24px; height: 24px; border-radius: 7px; border: 1.5px solid #94A3B8; background: #FFF;
+    font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .q-dot.done { background: #10B981; color: #FFF; border-color: #065F46; }
+  .q-dot.current { background: #4F46E5; color: #FFF; border-color: var(--navy); transform: scale(1.08); }
+
+  .sandbox-sec-title { font-size: 12px; font-weight: 900; color: #1E3A8A; margin: 4px 0; }
+  .sandbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .sb-add-btn {
+    background: #F8FAFC; border: 2px solid var(--navy); border-radius: 10px;
+    padding: 5px 8px; font-size: 12px; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .sb-add-btn:hover { background: #DBEAFE; }
+</style>
+</head>
+<body>
+
+  <!-- 頂部狀態欄 -->
+  <div class="topbar">
+    <div class="brand-group">
+      <div class="logo-tiles">
+        <div class="tile">拼</div>
+        <div class="tile">砌</div>
+        <div class="tile">大</div>
+        <div class="tile">師</div>
+      </div>
+      <div class="pill score">☆ <span id="scoreVal">0</span></div>
+      <div class="progress-wrap">
+        <span>完成 <span id="doneCount">0</span> / 60 題</span>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <button class="pill" id="toggleScoreBtn" onclick="toggleScore()">計分：開</button>
+      <button class="pill" onclick="resetScore()">重設分數</button>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="mode-btn active" id="tab-mc" onclick="switchMode('mc')">① 辨認與MC挑戰</button>
+      <button class="mode-btn" id="tab-build" onclick="switchMode('build')">② 依指示拼砌</button>
+      <button class="mode-btn" id="tab-sandbox" onclick="switchMode('sandbox')">③ 自由拼砌工坊</button>
+    </div>
+  </div>
+
+  <!-- 主工作區 -->
+  <div class="main-grid">
+    <!-- 左側 SVG 方格畫布 -->
+    <div class="board-card">
+      <div class="board-header">
+        <div class="q-counter">
+          <span id="headerTitle">第 1 題 / 共 30 題</span>
+          <span class="solved-badge" id="solvedBadge" style="display:none;">✓ 已過關</span>
+        </div>
+        <div class="diff-filters" id="diffFilters">
+          <button class="diff-btn active" onclick="setDiff('all')">全部</button>
+          <button class="diff-btn" onclick="setDiff('easy')">易 ★☆☆</button>
+          <button class="diff-btn" onclick="setDiff('med')">中 ★★☆</button>
+          <button class="diff-btn" onclick="setDiff('hard')">難 ★★★</button>
+        </div>
+      </div>
+
+      <div class="canvas-area">
+        <div class="canvas-tip-top" id="canvasTopTip">觀察圖形的邊數、直角與對邊平行特性</div>
+        <div class="diff-tag-top" id="diffTagTop">易 ★☆☆</div>
+        <svg id="geoCanvas" viewBox="0 0 600 460"></svg>
+      </div>
+
+      <div class="board-footer">
+        <span id="footerLeft">提示：沿外圍行一圈，接駁位形成直線只算 1 條邊！</span>
+        <span id="footerRight">小學四年級數學 · 單元六 第19課</span>
+      </div>
+    </div>
+
+    <!-- 右側互動面板 -->
+    <div class="side-col">
+      <div class="panel-box">
+        <div class="tag-row">
+          <span class="mode-pill" id="modePill">模式 ① 辨認與MC挑戰</span>
+          <span class="cat-pill" id="catPill">最少數量推理</span>
+        </div>
+        <div class="prompt-text" id="promptContainer"></div>
+        <div class="kw-toolbar" id="kwToolbar">
+          <span>圈重點字：</span>
+          <button class="kw-btn active" id="kwModeCircle" onclick="setKwTool('circle')">● 圈出</button>
+          <button class="kw-btn" id="kwModeErase" onclick="setKwTool('erase')">□ 擦膠</button>
+          <button class="kw-btn" onclick="clearKw()">清除標記</button>
+        </div>
+        <div class="hint-sub" id="hintSub">提示：先圈出數量、條件（如「不可以」、「最少」）與目標圖形！</div>
+      </div>
+
+      <div class="panel-box" id="actionPanel"></div>
+
+      <div class="panel-box">
+        <div class="feedback-box" id="feedbackBox">
+          <div class="fb-icon">▲</div>
+          <div id="feedbackText"><strong>準備就緒！</strong><br>先圈出題目重點字，再細心推理或動手試拼。</div>
+        </div>
+        <div class="nav-row" id="navRow">
+          <button class="nav-btn" onclick="prevQ()">◀ 上一題</button>
+          <div class="q-dots" id="qDots"></div>
+          <button class="nav-btn primary" onclick="nextQ()">下一題 ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// 畫布與幾何常數
+const SQ3 = Math.sqrt(3);
+const GRID_STEP = 44;
+const OX = 68, OY = 38;
+
+// 11 種標準多邊形圖卡定義（分為方格系列與等邊系列）
+const PIECE_DEFS = {
+  isoRight2: { name: '等腰直角△(2×2)', verts: [[0,0],[2,0],[0,2]], fill: '#BAE6FD', stroke: '#0369A1', series: 'grid' },
+  right32:   { name: '直角△(3×2)',     verts: [[0,0],[3,0],[0,2]], fill: '#DDD6FE', stroke: '#5B21B6', series: 'grid' },
+  narrow12:  { name: '窄直角△(1×2)',   verts: [[0,0],[1,0],[0,2]], fill: '#FBCFE8', stroke: '#9D174D', series: 'grid' },
+  sq2:       { name: '正方形(2×2)',     verts: [[0,0],[2,0],[2,2],[0,2]], fill: '#BBF7D0', stroke: '#15803D', series: 'grid' },
+  rect32:    { name: '長方形(3×2)',     verts: [[0,0],[3,0],[3,2],[0,2]], fill: '#BFDBFE', stroke: '#1D4ED8', series: 'grid' },
+  para32:    { name: '平行四邊形(3×2)', verts: [[0,0],[3,0],[4,2],[1,2]], fill: '#A7F3D0', stroke: '#047857', series: 'grid' },
+  rightTrap: { name: '直角梯形(高2)',   verts: [[0,0],[4,0],[2,2],[0,2]], fill: '#FDE68A', stroke: '#B45309', series: 'grid' },
+  isoTrap2:  { name: '等腰梯形(高2)',   verts: [[0,0],[4,0],[3,2],[1,2]], fill: '#FED7AA', stroke: '#C2410C', series: 'grid' },
+  eqTri2:    { name: '等邊△(邊2)',      verts: [[0,0],[2,0],[1,-SQ3]],    fill: '#FEF08A', stroke: '#A16207', series: 'eq' },
+  rhombus2:  { name: '菱形(邊2)',       verts: [[0,0],[2,0],[3,-SQ3],[1,-SQ3]], fill: '#C7D2FE', stroke: '#3730A3', series: 'eq' },
+  eqTrap3:   { name: '等邊梯形(3△)',    verts: [[0,0],[4,0],[3,-SQ3],[1,-SQ3]], fill: '#E9D5FF', stroke: '#6B21A8', series: 'eq' }
+};
+
+const TARGET_NAMES = {
+  triangle: '三角形',
+  rightTri: '直角三角形',
+  isoTri: '等腰三角形',
+  isoRightTri: '大等腰直角三角形',
+  eqTri: '大等邊三角形',
+  square: '正方形',
+  rectangle: '長方形',
+  parallelogram: '平行四邊形',
+  rhombus: '菱形',
+  trapezoid: '梯形'
+};
+
+// 統一座標變換：先繞 (0,0) 旋轉 rot 度，再水平翻轉，最後平移 (x, y)
+function getTransformedVerts(type, x, y, rot, flipX = false) {
+  const base = PIECE_DEFS[type].verts;
+  const rad = (rot * Math.PI) / 180;
+  const cosA = Math.cos(rad), sinA = Math.sin(rad);
+  return base.map(([vx, vy]) => {
+    let rx = vx * cosA - vy * sinA;
+    let ry = vx * sinA + vy * cosA;
+    if (flipX) rx = -rx;
+    return [rx + x, ry + y];
+  });
+}
+
+// 幾何多邊形聯集與特徵自動辨識引擎
+function analyzeAssembly(pieceList) {
+  if (!pieceList || pieceList.length === 0) return { valid: false, msg: '畫布上沒有圖卡。' };
+  const edges = [];
+  const polys = pieceList.map(p => getTransformedVerts(p.type, p.x, p.y, p.rot, p.flipX));
+  for (const pts of polys) {
+    for (let i = 0; i < pts.length; i++) edges.push([pts[i], pts[(i + 1) % pts.length]]);
+  }
+
+  // 檢查圖卡之間是否重疊
+  function ptInPoly(pt, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      const d = Math.hypot(pt[0]-xi, pt[1]-yi) + Math.hypot(pt[0]-xj, pt[1]-yj) - Math.hypot(xj-xi, yj-yi);
+      if (Math.abs(d) < 1e-3) return false;
+      const intersect = ((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi + 1e-12) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  for (let i = 0; i < polys.length; i++) {
+    const cx = polys[i].reduce((s, v) => s + v[0], 0) / polys[i].length;
+    const cy = polys[i].reduce((s, v) => s + v[1], 0) / polys[i].length;
+    for (let j = 0; j < polys.length; j++) {
+      if (i === j) continue;
+      if (ptInPoly([cx, cy], polys[j])) return { valid: false, msg: '圖卡之間有重疊！請把長度相等的邊拍齊，不可疊在一起。' };
+      for (const v of polys[i]) {
+        if (ptInPoly(v, polys[j])) return { valid: false, msg: '圖卡有角插入了另一張圖卡內部，不可重疊！' };
+      }
+    }
+  }
+
+  // 抵消內部完全重合的接駁邊
+  const samePt = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.04;
+  const used = new Array(edges.length).fill(false);
+  const rem = [];
+  for (let i = 0; i < edges.length; i++) {
+    if (used[i]) continue;
+    let matched = false;
+    for (let j = i + 1; j < edges.length; j++) {
+      if (used[j]) continue;
+      if ((samePt(edges[i][0], edges[j][1]) && samePt(edges[i][1], edges[j][0])) ||
+          (samePt(edges[i][0], edges[j][0]) && samePt(edges[i][1], edges[j][1]))) {
+        used[i] = used[j] = true; matched = true; break;
+      }
+    }
+    if (!matched) rem.push(edges[i]);
+  }
+
+  // 追蹤外圍封閉迴路
+  const ptsList = [], adj = {};
+  const getId = (p) => {
+    for (let idx = 0; idx < ptsList.length; idx++) if (samePt(ptsList[idx], p)) return idx;
+    ptsList.push(p); return ptsList.length - 1;
+  };
+  for (const [p1, p2] of rem) {
+    const u = getId(p1), v = getId(p2);
+    if (u === v) continue;
+    adj[u] = adj[u] || []; adj[u].push(v);
+    adj[v] = adj[v] || []; adj[v].push(u);
+  }
+  const keys = Object.keys(adj);
+  if (keys.length < 3 || keys.some(k => adj[k].length !== 2)) {
+    return { valid: false, msg: '圖卡之間只點對點相接、邊長未完全拍齊，或未連成一個完整多邊形！' };
+  }
+  const start = Number(keys[0]), loop = [start];
+  let prev = null, curr = start;
+  while (true) {
+    const nbs = adj[curr];
+    const nxt = nbs[0] !== prev ? nbs[0] : nbs[1];
+    if (nxt === start) break;
+    loop.push(nxt); prev = curr; curr = nxt;
+    if (loop.length > keys.length + 2) break;
+  }
+  if (loop.length !== keys.length) return { valid: false, msg: '圖卡未連成單一完整多邊形（有分離或中間留有空洞）！' };
+
+  // 合併共線接駁線段（直線只算 1 條邊）
+  const poly = loop.map(idx => ptsList[idx]), simp = [], m = poly.length;
+  for (let i = 0; i < m; i++) {
+    const p0 = poly[(i - 1 + m) % m], p1 = poly[i], p2 = poly[(i + 1) % m];
+    const v1 = [p1[0] - p0[0], p1[1] - p0[1]], v2 = [p2[0] - p1[0], p2[1] - p1[1]];
+    const l1 = Math.hypot(v1[0], v1[1]), l2 = Math.hypot(v2[0], v2[1]);
+    if (l1 < 1e-3 || l2 < 1e-3) continue;
+    if (Math.abs((v1[0] * v2[0] + v1[1] * v2[1]) / (l1 * l2) - 1.0) > 0.02) simp.push(p1);
+  }
+
+  // 計算邊數、邊長、直角數與對邊平行對數
+  const k = simp.length, lens = [];
+  let rights = 0;
+  for (let i = 0; i < k; i++) {
+    const p0 = simp[(i - 1 + k) % k], p1 = simp[i], p2 = simp[(i + 1) % k];
+    lens.push(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]));
+    const v1 = [p0[0] - p1[0], p0[1] - p1[1]], v2 = [p2[0] - p1[0], p2[1] - p1[1]];
+    if (Math.abs((v1[0] * v2[0] + v1[1] * v2[1]) / (Math.hypot(v1[0], v1[1]) * Math.hypot(v2[0], v2[1]))) < 0.04) rights++;
+  }
+
+  const matchedTypes = [];
+  let exactName = `${k}邊形`, parPairs = 0;
+  if (k === 3) {
+    matchedTypes.push('triangle');
+    const eq01 = Math.abs(lens[0] - lens[1]) < 0.06, eq12 = Math.abs(lens[1] - lens[2]) < 0.06, eq02 = Math.abs(lens[0] - lens[2]) < 0.06;
+    if (rights === 1) matchedTypes.push('rightTri');
+    if (eq01 && eq12) { matchedTypes.push('eqTri', 'isoTri'); exactName = '等邊三角形'; }
+    else if (eq01 || eq12 || eq02) {
+      matchedTypes.push('isoTri');
+      if (rights === 1) { matchedTypes.push('isoRightTri'); exactName = '等腰直角三角形'; }
+      else exactName = '等腰三角形';
+    } else if (rights === 1) exactName = '直角三角形';
+    else exactName = '三角形';
+  } else if (k === 4) {
+    const isPar = (a1, a2, b1, b2) => {
+      const v1 = [a2[0] - a1[0], a2[1] - a1[1]], v2 = [b2[0] - b1[0], b2[1] - b1[1]];
+      return Math.abs(v1[0] * v2[1] - v1[1] * v2[0]) / (Math.hypot(v1[0], v1[1]) * Math.hypot(v2[0], v2[1])) < 0.04;
+    };
+    const p02 = isPar(simp[0], simp[1], simp[2], simp[3]), p13 = isPar(simp[1], simp[2], simp[3], simp[0]);
+    parPairs = (p02 ? 1 : 0) + (p13 ? 1 : 0);
+    const allEq = lens.every(l => Math.abs(l - lens[0]) < 0.06);
+    if (parPairs === 2) {
+      matchedTypes.push('parallelogram');
+      if (rights === 4 && allEq) { matchedTypes.push('rectangle', 'rhombus', 'square'); exactName = '正方形'; }
+      else if (rights === 4) { matchedTypes.push('rectangle'); exactName = '長方形'; }
+      else if (allEq) { matchedTypes.push('rhombus'); exactName = '菱形'; }
+      else exactName = '平行四邊形';
+    } else if (parPairs === 1) { matchedTypes.push('trapezoid'); exactName = '梯形'; }
+    else exactName = '四邊形';
+  }
+  return { valid: true, sides: k, rights, parPairs, exactName, matchedTypes, outerPoly: simp };
+}
+
+// =========================================================================
+// 模式 ①：30 道多元推理 MC 挑戰題（易 10、中 10、難 10）
+// =========================================================================
+const MC_QUESTIONS = [
+  // 易 (10題)
+  {
+    diff: 'easy', cat: '最少數量推理',
+    prompt: '最少要用多少個右圖的 等腰直角三角形（2×2） 才可以拼砌出 1 個正方形？（可按「＋複製一張試拼」）',
+    trialType: 'isoRight2',
+    visual: [{ type: 'isoRight2', x: 4, y: 4, rot: 0, flipX: false }],
+    options: ['A. 2 個', 'B. 3 個', 'C. 4 個', 'D. 6 個'],
+    ans: 0,
+    exp: '把 2 個相同的等腰直角三角形斜邊拍齊，就能拼出 1 個 2×2 正方形。'
+  },
+  {
+    diff: 'easy', cat: '外圍邊數計算',
+    prompt: '把 2 個相同的直角三角形（3×2）沿斜邊拍齊後，沿外圍行一圈，共有多少條邊？',
+    visual: [
+      { type: 'right32', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'right32', x: 7, y: 7, rot: 180, flipX: false }
+    ],
+    options: ['A. 3 條邊', 'B. 4 條邊', 'C. 5 條邊', 'D. 6 條邊'],
+    ans: 1,
+    exp: '拼成長 3 格、闊 2 格的長方形，沿外圍轉彎 4 次，共有 4 條邊。'
+  },
+  {
+    diff: 'easy', cat: '不可能拼出的圖形',
+    prompt: '用 2 個形狀和大小都相同的 等邊三角形（全部用完，不重疊），不可能拼出以下哪種圖形？',
+    visual: [
+      { type: 'eqTri2', x: 3, y: 5, rot: 0, flipX: false },
+      { type: 'eqTri2', x: 6, y: 5, rot: 0, flipX: false }
+    ],
+    options: ['A. 菱形', 'B. 平行四邊形', 'C. 梯形', 'D. 正方形'],
+    ans: 3,
+    exp: '2 個等邊三角形拼出菱形（也是平行四邊形），但沒有直角，不可能拼出正方形。'
+  },
+  {
+    diff: 'easy', cat: '合併直線邊規則',
+    prompt: '右圖由正方形（2×2）與等腰直角三角形拼成，底邊接駁位形成一條直線後，底邊長多少格？',
+    visual: [
+      { type: 'sq2', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: false }
+    ],
+    options: ['A. 2 格', 'B. 3 格', 'C. 4 格', 'D. 6 格'],
+    ans: 2,
+    exp: '正方形底邊長 2 格加上三角形底邊長 2 格，兩條水平邊連成同一條直線，共長 4 格。'
+  },
+  {
+    diff: 'easy', cat: '直角數量判斷',
+    prompt: '用 1 個 直角梯形 和 1 個 等腰直角三角形 拼成右圖，拼出的圖形共有多少個直角？',
+    visual: [
+      { type: 'rightTrap', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 8, y: 7, rot: 180, flipX: false }
+    ],
+    options: ['A. 1 個', 'B. 2 個', 'C. 3 個', 'D. 4 個'],
+    ans: 3,
+    exp: '兩者拼成 4×2 長方形，四個角都是直角，共有 4 個直角。'
+  },
+  {
+    diff: 'easy', cat: '對邊平行判斷',
+    prompt: '用 3 個相同的 等邊三角形 拼成右圖，這個圖形有幾對對邊平行？',
+    visual: [
+      { type: 'eqTri2', x: 3, y: 7, rot: 0, flipX: false },
+      { type: 'eqTri2', x: 4, y: 7 - SQ3, rot: 60, flipX: false },
+      { type: 'eqTri2', x: 5, y: 7, rot: 0, flipX: false }
+    ],
+    options: ['A. 0 對', 'B. 1 對', 'C. 2 對', 'D. 3 對'],
+    ans: 1,
+    exp: '這是梯形，只有上下底（長 2 格與 4 格）互相平行，左右兩腰不平行，所以只有 1 對對邊平行。'
+  },
+  {
+    diff: 'easy', cat: '拼砌規則辨析',
+    prompt: '在右圖中，把兩個等腰直角三角形的直角邊背靠背拼在一起，沿外圍行一圈有幾條邊？',
+    visual: [
+      { type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: false },
+      { type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: true }
+    ],
+    options: ['A. 2 條邊', 'B. 3 條邊', 'C. 4 條邊', 'D. 6 條邊'],
+    ans: 1,
+    exp: '底邊接駁成 1 條直線，加上左右兩條斜邊，沿外圍行一圈共 3 條邊。'
+  },
+  {
+    diff: 'easy', cat: '拼砌可行性',
+    prompt: '用 1 個 長方形（3×2） 和 2 個相同的 等腰直角三角形 拼成右圖，有幾對對邊平行？',
+    visual: [
+      { type: 'rect32', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 4, y: 7, rot: 180, flipX: false },
+      { type: 'isoRight2', x: 7, y: 5, rot: 0, flipX: false }
+    ],
+    options: ['A. 0 對', 'B. 1 對', 'C. 2 對', 'D. 4 對'],
+    ans: 2,
+    exp: '拼出的是平行四邊形，上下對邊平行且左右斜邊對邊也平行，共有 2 對對邊平行。'
+  },
+  {
+    diff: 'easy', cat: '拼砌錯誤診斷',
+    prompt: '觀察右圖，兩個等腰直角三角形貼在正方形上方與右方後，為甚麼外圍只剩 3 條邊？',
+    visual: [
+      { type: 'sq2', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: false },
+      { type: 'isoRight2', x: 4, y: 5, rot: -90, flipX: false }
+    ],
+    options: ['A. 因為少了一塊圖卡', 'B. 因為多條外圍邊各自接駁成直線', 'C. 因為圖卡互相重疊', 'D. 因為正方形只有 3 條邊'],
+    ans: 1,
+    exp: '左邊、底邊與右邊的接駁線段各自拉成直線，只剩 3 條外圍邊，形成大等腰直角三角形。'
+  },
+  {
+    diff: 'easy', cat: '格數變化計算',
+    prompt: '用 2 個相同的 正方形（2×2） 拼砌，拼出圖形的長和闊分別是多少格？',
+    visual: [
+      { type: 'sq2', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'sq2', x: 6, y: 5, rot: 0, flipX: false }
+    ],
+    options: ['A. 長 2 格、闊 2 格', 'B. 長 4 格、闊 2 格', 'C. 長 4 格、闊 4 格', 'D. 長 3 格、闊 2 格'],
+    ans: 1,
+    exp: '兩個 2×2 正方形並排，水平方向變長為 4 格，垂直方向維持 2 格。'
+  },
+
+  // 中 (10題)
+  {
+    diff: 'med', cat: '最少數量推理',
+    prompt: '最少要用多少個右圖的 正方形（2×2） 才可以拼砌出 1 個更大的正方形？（可按「＋複製一張試拼」）',
+    trialType: 'sq2',
+    visual: [{ type: 'sq2', x: 4, y: 4, rot: 0, flipX: false }],
+    options: ['A. 2 個', 'B. 3 個', 'C. 4 個', 'D. 6 個'],
+    ans: 2,
+    exp: '2 個正方形只能拼出長方形；要使長和闊相等，最少需要 2×2 = 4 個正方形。'
+  },
+  {
+    diff: 'med', cat: '最少數量推理',
+    prompt: '最少要用多少個右圖的 等邊三角形（邊長2） 才可以拼砌出 1 個更大的等邊三角形？（可按「＋複製一張試拼」）',
+    trialType: 'eqTri2',
+    visual: [{ type: 'eqTri2', x: 4, y: 6, rot: 0, flipX: false }],
+    options: ['A. 2 個', 'B. 3 個', 'C. 4 個', 'D. 6 個'],
+    ans: 2,
+    exp: '底層排 3 個（2 正 1 倒）成梯形，頂層再放 1 個正立等邊三角形，最少需要 4 個。'
+  },
+  {
+    diff: 'med', cat: '不可能拼出的圖形',
+    prompt: '用 1 個 正方形 和 1 個 等腰直角三角形（全部用完，不重疊），不可能拼出以下哪種四邊形？',
+    visual: [
+      { type: 'sq2', x: 3, y: 5, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 6, y: 5, rot: 0, flipX: false }
+    ],
+    options: ['A. 梯形', 'B. 平行四邊形', 'C. 兩者皆不可能', 'D. 兩者皆可'],
+    ans: 1,
+    exp: '直角邊拍齊可拼出梯形，但只有一個 45° 尖角，無法拼出兩對對邊平行的平行四邊形。'
+  },
+  {
+    diff: 'med', cat: '性質與分類辨析',
+    prompt: '用 1 個 長方形（3×2） 和 1 個 窄直角三角形（1×2） 拼成右圖，它有幾個直角？',
+    visual: [
+      { type: 'rect32', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'narrow12', x: 7, y: 5, rot: 0, flipX: false }
+    ],
+    options: ['A. 1 個', 'B. 2 個', 'C. 3 個', 'D. 4 個'],
+    ans: 1,
+    exp: '拼出的是直角梯形，只有左邊上下兩個角是直角，共有 2 個直角。'
+  },
+  {
+    diff: 'med', cat: '性質與分類辨析',
+    prompt: '承上題（右圖由長方形 3×2 與窄直角三角形 1×2 拼成），為甚麼它不是長方形？',
+    visual: [
+      { type: 'rect32', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'narrow12', x: 7, y: 5, rot: 0, flipX: false }
+    ],
+    options: ['A. 因為只有 3 條邊', 'B. 因為只有一對對邊平行且只有 2 個直角', 'C. 因為沒有平行邊', 'D. 因為有 5 條邊'],
+    ans: 1,
+    exp: '右邊是斜邊，只有上下一對對邊平行且只有 2 個直角，不符合長方形「4 個直角、兩對對邊平行」的定義。'
+  },
+  {
+    diff: 'med', cat: '格數變化計算',
+    prompt: '用 1 個 等腰梯形（高2） 和 2 個相同的 窄直角三角形（1×2） 拼成右圖，上底長多少格？',
+    visual: [
+      { type: 'isoTrap2', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'narrow12', x: 4, y: 7, rot: 180, flipX: true },
+      { type: 'narrow12', x: 8, y: 7, rot: 180, flipX: false }
+    ],
+    options: ['A. 2 格', 'B. 3 格', 'C. 4 格', 'D. 5 格'],
+    ans: 2,
+    exp: '等腰梯形頂邊 2 格加上兩側窄直角三角形底邊各 1 格，拼成長方形後上底共長 4 格。'
+  },
+  {
+    diff: 'med', cat: '直角數量判斷',
+    prompt: '觀察右圖，4 個等腰直角三角形拼成大圖形後，共有多少個直角？',
+    visual: [
+      { type: 'isoRight2', x: 6, y: 6, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 6, y: 6, rot: 90, flipX: false },
+      { type: 'isoRight2', x: 6, y: 6, rot: 180, flipX: false },
+      { type: 'isoRight2', x: 6, y: 6, rot: -90, flipX: false }
+    ],
+    options: ['A. 0 個', 'B. 2 個', 'C. 4 個', 'D. 8 個'],
+    ans: 2,
+    exp: '四個直角頂點聚在中心形成 360° 周角，外圍四條斜邊互相垂直，共有 4 個直角（正方形）。'
+  },
+  {
+    diff: 'med', cat: '格數變化計算',
+    prompt: '用 3 個相同的 直角三角形（3×2） 拼成右圖梯形，它的下底比上底長多少格？',
+    visual: [
+      { type: 'right32', x: 3, y: 5, rot: 0, flipX: false },
+      { type: 'right32', x: 6, y: 7, rot: 180, flipX: false },
+      { type: 'right32', x: 6, y: 7, rot: 180, flipX: true }
+    ],
+    options: ['A. 長 1 格', 'B. 長 2 格', 'C. 長 3 格', 'D. 長 6 格'],
+    ans: 2,
+    exp: '上底長 3 格，下底長 6 格，下底比上底長 6 - 3 = 3 格。'
+  },
+  {
+    diff: 'med', cat: '對邊平行判斷',
+    prompt: '用 1 個 正方形（2×2） 和 2 個相同的 窄直角三角形（1×2） 拼成右圖，有幾對對邊平行？',
+    visual: [
+      { type: 'sq2', x: 5, y: 5, rot: 0, flipX: false },
+      { type: 'narrow12', x: 5, y: 7, rot: 180, flipX: false },
+      { type: 'narrow12', x: 7, y: 5, rot: 0, flipX: false }
+    ],
+    options: ['A. 0 對', 'B. 1 對', 'C. 2 對', 'D. 3 對'],
+    ans: 2,
+    exp: '拼出的是平行四邊形，上下對邊各 3 格平行，左右兩條斜邊也互相平行，共有 2 對對邊平行。'
+  },
+  {
+    diff: 'med', cat: '直角數量判斷',
+    prompt: '用 1 個 長方形（3×2） 和 2 個相同的 等腰直角三角形 拼成右圖，它有幾個直角？',
+    visual: [
+      { type: 'rect32', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 4, y: 7, rot: 180, flipX: false },
+      { type: 'isoRight2', x: 7, y: 7, rot: -90, flipX: false }
+    ],
+    options: ['A. 0 個', 'B. 2 個', 'C. 3 個', 'D. 4 個'],
+    ans: 0,
+    exp: '拼出的是等腰梯形，上下兩底平行，左右兩腰向內傾斜，四個角都不是直角，共有 0 個直角。'
+  },
+
+  // 難 (10題)
+  {
+    diff: 'hard', cat: '最少數量推理',
+    prompt: '最少要用多少個右圖的 直角三角形（底3格、高2格） 才可以拼砌出 1 個正方形？（可按「＋複製一張試拼」）',
+    trialType: 'right32',
+    visual: [{ type: 'right32', x: 2, y: 3, rot: 0, flipX: false }],
+    options: ['A. 4 個', 'B. 6 個', 'C. 8 個', 'D. 12 個'],
+    ans: 3,
+    exp: '2 個直角三角形拼成 3×2 長方形；3 和 2 的最小公倍數是 6，需 6 個長方形（即 12 個三角形）拼成 6×6 正方形。'
+  },
+  {
+    diff: 'hard', cat: '不可能拼出的圖形',
+    prompt: '把右圖的 3 張多邊形全部用完（不重疊），不可能拼出以下哪種四邊形？（可拖拉右圖試拼）',
+    trialDrag: true,
+    visual: [
+      { type: 'sq2', x: 2, y: 4, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 5, y: 4, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 8, y: 4, rot: 0, flipX: false }
+    ],
+    options: ['A. 長方形', 'B. 平行四邊形', 'C. 梯形', 'D. 菱形（四邊相等）'],
+    ans: 3,
+    exp: '總面積為 8 格，可拼成長方形（4×2）、平行四邊形或梯形，但無法拼出四邊等長的菱形。'
+  },
+  {
+    diff: 'hard', cat: '格數變化計算',
+    prompt: '用 1 個 平行四邊形（3×2） 和 2 個相同的 窄直角三角形（1×2） 拼成右圖，拼出圖形的長是多少格？',
+    visual: [
+      { type: 'para32', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'narrow12', x: 4, y: 7, rot: 180, flipX: true },
+      { type: 'narrow12', x: 8, y: 5, rot: 0, flipX: true }
+    ],
+    options: ['A. 3 格', 'B. 4 格', 'C. 5 格', 'D. 6 格'],
+    ans: 1,
+    exp: '平行四邊形上下底各 3 格，左右兩側各補上 1 格寬的窄直角三角形，拼成長方形後長為 3 + 1 = 4 格。'
+  },
+  {
+    diff: 'hard', cat: '格數變化計算',
+    prompt: '用 1 個 等邊梯形（3△） 和 1 個 等邊三角形 拼成右圖，每條外圍邊長多少格？',
+    visual: [
+      { type: 'eqTrap3', x: 3, y: 7, rot: 0, flipX: false },
+      { type: 'eqTri2', x: 4, y: 7 - SQ3, rot: 0, flipX: false }
+    ],
+    options: ['A. 2 格', 'B. 3 格', 'C. 4 格', 'D. 6 格'],
+    ans: 2,
+    exp: '等邊梯形底邊 4 格，兩側與頂部各延伸至邊長 4 格，拼成邊長 4 格的大等邊三角形。'
+  },
+  {
+    diff: 'hard', cat: '格數變化計算',
+    prompt: '用 4 個形狀和大小都相同的 窄直角三角形（1×2） 拼成右圖正方形，它的邊長是多少格？',
+    visual: [
+      { type: 'narrow12', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'narrow12', x: 5, y: 7, rot: 180, flipX: false },
+      { type: 'narrow12', x: 5, y: 5, rot: 0, flipX: false },
+      { type: 'narrow12', x: 6, y: 7, rot: 180, flipX: false }
+    ],
+    options: ['A. 1 格', 'B. 2 格', 'C. 3 格', 'D. 4 格'],
+    ans: 1,
+    exp: '2 個 1×2 直角三角形拼成高 2 格、寬 1 格的長方形，2 個並排即成邊長 2 格的正方形。'
+  },
+  {
+    diff: 'hard', cat: '對邊平行判斷',
+    prompt: '用 1 個 菱形（邊2） 和 2 個相同的 等邊三角形（邊2） 拼成右圖，它有幾對對邊平行？',
+    visual: [
+      { type: 'rhombus2', x: 3, y: 7, rot: 0, flipX: false },
+      { type: 'eqTri2', x: 5, y: 7, rot: 0, flipX: false },
+      { type: 'eqTri2', x: 6, y: 7 - SQ3, rot: 60, flipX: false }
+    ],
+    options: ['A. 0 對', 'B. 1 對', 'C. 2 對', 'D. 3 對'],
+    ans: 2,
+    exp: '拼出的是平行四邊形，上下對邊平行且左右對邊平行，共有 2 對對邊平行。'
+  },
+  {
+    diff: 'hard', cat: '格數變化計算',
+    prompt: '用 1 個 等邊梯形（3△） 和 2 個相同的 等邊三角形 拼成右圖，上底與下底相差多少格？',
+    visual: [
+      { type: 'eqTrap3', x: 3, y: 7, rot: 0, flipX: false },
+      { type: 'eqTri2', x: 4, y: 7 - SQ3, rot: 180, flipX: false },
+      { type: 'eqTri2', x: 8, y: 7 - SQ3, rot: 180, flipX: false }
+    ],
+    options: ['A. 1 格', 'B. 2 格', 'C. 3 格', 'D. 4 格'],
+    ans: 1,
+    exp: '拼出的是梯形，上底長 6 格、下底長 4 格，兩底相差 6 - 4 = 2 格。'
+  },
+  {
+    diff: 'hard', cat: '格數變化計算',
+    prompt: '把 1 個正方形（2×2）與 2 個等腰直角三角形拼成右圖（大等腰直角三角形），每條直角邊長多少格？',
+    visual: [
+      { type: 'sq2', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: false },
+      { type: 'isoRight2', x: 4, y: 5, rot: -90, flipX: false }
+    ],
+    options: ['A. 2 格', 'B. 3 格', 'C. 4 格', 'D. 6 格'],
+    ans: 2,
+    exp: '正方形邊長 2 格加上等腰直角三角形直角邊 2 格，拼成的大等腰直角三角形兩條直角邊各長 4 格。'
+  },
+  {
+    diff: 'hard', cat: '直角數量判斷',
+    prompt: '用 1 個 直角梯形（高2） 和 1 個 等腰直角三角形 拼成右圖（平行四邊形），它有幾個直角？',
+    visual: [
+      { type: 'rightTrap', x: 4, y: 5, rot: 0, flipX: false },
+      { type: 'isoRight2', x: 4, y: 7, rot: 180, flipX: false }
+    ],
+    options: ['A. 0 個', 'B. 1 個', 'C. 2 個', 'D. 4 個'],
+    ans: 0,
+    exp: '等腰直角三角形的斜邊貼在直角梯形左邊後，上下底各長 4 格且平行，左右兩邊向左上傾斜，沒有直角（0 個直角）。'
+  },
+  {
+    diff: 'hard', cat: '最少數量推理',
+    prompt: '若要拼出 1 個邊長 4 格的正方形，最少需要多少個邊長 2 格的正方形？',
+    visual: [
+      { type: 'sq2', x: 4, y: 4, rot: 0, flipX: false },
+      { type: 'sq2', x: 6, y: 4, rot: 0, flipX: false },
+      { type: 'sq2', x: 4, y: 6, rot: 0, flipX: false },
+      { type: 'sq2', x: 6, y: 6, rot: 0, flipX: false }
+    ],
+    options: ['A. 2 個', 'B. 3 個', 'C. 4 個', 'D. 8 個'],
+    ans: 2,
+    exp: '沿長和闊各排 2 個邊長 2 格的正方形，共需 2 × 2 = 4 個。'
+  }
+];
+
+// =========================================================================
+// 模式 ②：30 道依指示拼砌題（易 10、中 10、難 10，全部示範答案經聯集驗證）
+// =========================================================================
+const BUILD_QUESTIONS = [
+  // 易 (10題)
+  { diff: 'easy', cat: '用相同的圖形拼砌', prompt: '用 2 個 形狀和大小都相同的 等腰直角三角形 拼砌出 1 個 正方形 。', pieces: ['isoRight2', 'isoRight2'], target: 'square', hint: '把兩個等腰直角三角形最長的斜邊完全拍齊！', solution: [{ type: 'isoRight2', x: 5, y: 5, rot: 0, flipX: false }, { type: 'isoRight2', x: 7, y: 7, rot: 180, flipX: false }] },
+  { diff: 'easy', cat: '用相同的圖形拼砌', prompt: '用 2 個 形狀和大小都相同的 等腰直角三角形 拼砌出 1 個 大等腰直角三角形 。', pieces: ['isoRight2', 'isoRight2'], target: 'isoRightTri', hint: '把其中一個三角形水平翻轉，將兩條直角邊拍齊！', solution: [{ type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: false }, { type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: true }] },
+  { diff: 'easy', cat: '用相同的圖形拼砌', prompt: '用 2 個 形狀和大小都相同的 等腰直角三角形 拼砌出 1 個 平行四邊形 。', pieces: ['isoRight2', 'isoRight2'], target: 'parallelogram', hint: '將其中一個三角形旋轉，把兩條直角邊錯開方向拍齊。', solution: [{ type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: true }, { type: 'isoRight2', x: 6, y: 5, rot: 90, flipX: true }] },
+  { diff: 'easy', cat: '用相同的圖形拼砌', prompt: '用 2 個 形狀和大小都相同的 直角三角形（3×2） 拼砌出 1 個 長方形 。', pieces: ['right32', 'right32'], target: 'rectangle', hint: '把第二個直角三角形旋轉 180°，將斜邊完全拍齊。', solution: [{ type: 'right32', x: 4, y: 5, rot: 0, flipX: false }, { type: 'right32', x: 7, y: 7, rot: 180, flipX: false }] },
+  { diff: 'easy', cat: '用相同的圖形拼砌', prompt: '用 2 個 形狀和大小都相同的 直角三角形（3×2） 拼砌出 1 個 等腰三角形 。', pieces: ['right32', 'right32'], target: 'isoTri', hint: '把兩個直角三角形高 2 格的直角邊背靠背拍齊。', solution: [{ type: 'right32', x: 6, y: 7, rot: -90, flipX: true }, { type: 'right32', x: 6, y: 7, rot: -90, flipX: false }] },
+  { diff: 'easy', cat: '用相同的圖形拼砌', prompt: '用 2 個 形狀和大小都相同的 等邊三角形 拼砌出 1 個 菱形 。', pieces: ['eqTri2', 'eqTri2'], target: 'rhombus', hint: '把第二個等邊三角形順時針旋轉 60° 拍齊。', solution: [{ type: 'eqTri2', x: 4, y: 6, rot: 0, flipX: false }, { type: 'eqTri2', x: 4, y: 6, rot: 60, flipX: false }] },
+  { diff: 'easy', cat: '用相同的圖形拼砌', prompt: '用 2 個 形狀和大小都相同的 正方形 拼砌出 1 個 長方形 。', pieces: ['sq2', 'sq2'], target: 'rectangle', hint: '把兩個正方形並排放在一起。', solution: [{ type: 'sq2', x: 4, y: 5, rot: 0, flipX: false }, { type: 'sq2', x: 6, y: 5, rot: 0, flipX: false }] },
+  { diff: 'easy', cat: '用不同的圖形拼砌', prompt: '用 1 個 正方形 和 1 個 等腰直角三角形 拼砌出 1 個 梯形 。', pieces: ['sq2', 'isoRight2'], target: 'trapezoid', hint: '找出 2 格長的相等邊拍齊。', solution: [{ type: 'sq2', x: 4, y: 5, rot: 0, flipX: false }, { type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: false }] },
+  { diff: 'easy', cat: '用不同的圖形拼砌', prompt: '用 1 個 直角梯形 和 1 個 等腰直角三角形 拼砌出 1 個 長方形 。', pieces: ['rightTrap', 'isoRight2'], target: 'rectangle', hint: '把等腰直角三角形旋轉 180° 補齊斜邊缺口。', solution: [{ type: 'rightTrap', x: 4, y: 5, rot: 0, flipX: false }, { type: 'isoRight2', x: 8, y: 7, rot: 180, flipX: false }] },
+  { diff: 'easy', cat: '用不同的圖形拼砌', prompt: '用 1 個 平行四邊形（3×2） 和 1 個 窄直角三角形（1×2） 拼砌出 1 個 梯形 。', pieces: ['para32', 'narrow12'], target: 'trapezoid', hint: '把窄直角三角形倒轉貼在平行四邊形左斜邊上。', solution: [{ type: 'para32', x: 4, y: 5, rot: 0, flipX: false }, { type: 'narrow12', x: 4, y: 7, rot: 180, flipX: true }] },
+
+  // 中 (10題)
+  { diff: 'med', cat: '用相同的圖形拼砌', prompt: '用 3 個 形狀和大小都相同的 等邊三角形 拼砌出 1 個 梯形 。', pieces: ['eqTri2', 'eqTri2', 'eqTri2'], target: 'trapezoid', hint: '底層 2 個正立等邊三角形，中間放 1 個旋轉 60° 倒立等邊三角形。', solution: [{ type: 'eqTri2', x: 3, y: 7, rot: 0, flipX: false }, { type: 'eqTri2', x: 4, y: 7 - SQ3, rot: 60, flipX: false }, { type: 'eqTri2', x: 5, y: 7, rot: 0, flipX: false }] },
+  { diff: 'med', cat: '用相同的圖形拼砌', prompt: '用 3 個 形狀和大小都相同的 等腰直角三角形 拼砌出 1 個 梯形 。', pieces: ['isoRight2', 'isoRight2', 'isoRight2'], target: 'trapezoid', hint: '先用 2 個三角形拼成正方形，再貼上第 3 個三角形。', solution: [{ type: 'isoRight2', x: 3, y: 7, rot: -90, flipX: false }, { type: 'isoRight2', x: 5, y: 5, rot: 90, flipX: false }, { type: 'isoRight2', x: 5, y: 7, rot: -90, flipX: false }] },
+  { diff: 'med', cat: '用相同的圖形拼砌', prompt: '用 4 個 形狀和大小都相同的 直角三角形（3×2） 拼砌出 1 個 平行四邊形 。', pieces: ['right32', 'right32', 'right32', 'right32'], target: 'parallelogram', hint: '四個直角三角形同方向斜向錯開拍齊（沒有直角）。', solution: [{ type: 'right32', x: 5, y: 5, rot: 0, flipX: true }, { type: 'right32', x: 5, y: 7, rot: 180, flipX: true }, { type: 'right32', x: 8, y: 5, rot: 0, flipX: true }, { type: 'right32', x: 8, y: 7, rot: 180, flipX: true }] },
+  { diff: 'med', cat: '用相同的圖形拼砌', prompt: '用 4 個 形狀和大小都相同的 窄直角三角形（1×2） 拼砌出 1 個 正方形 。', pieces: ['narrow12', 'narrow12', 'narrow12', 'narrow12'], target: 'square', hint: '每 2 個拼成 1×2 長方形，2 個並排成 2×2 正方形。', solution: [{ type: 'narrow12', x: 4, y: 5, rot: 0, flipX: false }, { type: 'narrow12', x: 5, y: 7, rot: 180, flipX: false }, { type: 'narrow12', x: 5, y: 5, rot: 0, flipX: false }, { type: 'narrow12', x: 6, y: 7, rot: 180, flipX: false }] },
+  { diff: 'med', cat: '用不同的圖形拼砌', prompt: '用 1 個 長方形（3×2） 和 2 個相同的 等腰直角三角形 拼砌出 1 個 平行四邊形 。', pieces: ['rect32', 'isoRight2', 'isoRight2'], target: 'parallelogram', hint: '長方形放中間，左右各貼 1 個三角形使兩對對邊平行。', solution: [{ type: 'rect32', x: 4, y: 5, rot: 0, flipX: false }, { type: 'isoRight2', x: 4, y: 7, rot: 180, flipX: false }, { type: 'isoRight2', x: 7, y: 5, rot: 0, flipX: false }] },
+  { diff: 'med', cat: '用不同的圖形拼砌', prompt: '用 1 個 長方形（3×2） 和 2 個相同的 等腰直角三角形 拼砌出 1 個 梯形 。', pieces: ['rect32', 'isoRight2', 'isoRight2'], target: 'trapezoid', hint: '左右各貼 1 個直角邊向內的等腰直角三角形，形成上下底不等長的梯形。', solution: [{ type: 'rect32', x: 4, y: 5, rot: 0, flipX: false }, { type: 'isoRight2', x: 4, y: 7, rot: 180, flipX: false }, { type: 'isoRight2', x: 7, y: 7, rot: -90, flipX: false }] },
+  { diff: 'med', cat: '用不同的圖形拼砌', prompt: '用 1 個 等腰梯形（高2） 和 2 個相同的 窄直角三角形（1×2） 拼砌出 1 個 長方形 。', pieces: ['isoTrap2', 'narrow12', 'narrow12'], target: 'rectangle', hint: '兩個窄直角三角形倒轉補齊等腰梯形左右斜邊。', solution: [{ type: 'isoTrap2', x: 4, y: 5, rot: 0, flipX: false }, { type: 'narrow12', x: 4, y: 7, rot: 180, flipX: true }, { type: 'narrow12', x: 8, y: 7, rot: 180, flipX: false }] },
+  { diff: 'med', cat: '用不同的圖形拼砌', prompt: '用 1 個 直角梯形（高2） 和 1 個 等腰直角三角形 拼砌出 1 個 三角形 。', pieces: ['rightTrap', 'isoRight2'], target: 'triangle', hint: '把等腰直角三角形放在直角梯形上方，使右斜邊連成直線。', solution: [{ type: 'rightTrap', x: 4, y: 5, rot: 0, flipX: false }, { type: 'isoRight2', x: 4, y: 7, rot: 0, flipX: false }] },
+  { diff: 'med', cat: '用不同的圖形拼砌', prompt: '用 1 個 正方形（2×2） 和 2 個相同的 窄直角三角形（1×2） 拼砌出 1 個 平行四邊形 。', pieces: ['sq2', 'narrow12', 'narrow12'], target: 'parallelogram', hint: '正方形放中間，左右各貼 1 個窄三角形。', solution: [{ type: 'sq2', x: 5, y: 5, rot: 0, flipX: false }, { type: 'narrow12', x: 5, y: 7, rot: 180, flipX: false }, { type: 'narrow12', x: 7, y: 5, rot: 0, flipX: false }] },
+  { diff: 'med', cat: '用不同的圖形拼砌', prompt: '用 1 個 菱形（邊2） 和 2 個相同的 等邊三角形（邊2） 拼砌出 1 個 平行四邊形 。', pieces: ['rhombus2', 'eqTri2', 'eqTri2'], target: 'parallelogram', hint: '2 個等邊三角形拼成菱形後與原菱形並排。', solution: [{ type: 'rhombus2', x: 3, y: 7, rot: 0, flipX: false }, { type: 'eqTri2', x: 5, y: 7, rot: 0, flipX: false }, { type: 'eqTri2', x: 6, y: 7 - SQ3, rot: 60, flipX: false }] },
+
+  // 難 (10題)
+  { diff: 'hard', cat: '用相同的圖形拼砌', prompt: '用 4 個 形狀和大小都相同的 等腰直角三角形 拼砌出 1 個 正方形 。', pieces: ['isoRight2', 'isoRight2', 'isoRight2', 'isoRight2'], target: 'square', hint: '四個直角頂點聚在中間同一點。', solution: [{ type: 'isoRight2', x: 6, y: 6, rot: 0, flipX: false }, { type: 'isoRight2', x: 6, y: 6, rot: 90, flipX: false }, { type: 'isoRight2', x: 6, y: 6, rot: 180, flipX: false }, { type: 'isoRight2', x: 6, y: 6, rot: -90, flipX: false }] },
+  { diff: 'hard', cat: '用相同的圖形拼砌', prompt: '用 4 個 形狀和大小都相同的 正方形 拼砌出 1 個 大正方形 。', pieces: ['sq2', 'sq2', 'sq2', 'sq2'], target: 'square', hint: '排成 2×2 田字格。', solution: [{ type: 'sq2', x: 4, y: 4, rot: 0, flipX: false }, { type: 'sq2', x: 6, y: 4, rot: 0, flipX: false }, { type: 'sq2', x: 4, y: 6, rot: 0, flipX: false }, { type: 'sq2', x: 6, y: 6, rot: 0, flipX: false }] },
+  { diff: 'hard', cat: '用不同的圖形拼砌', prompt: '用 1 個 正方形 和 2 個相同的 等腰直角三角形 拼砌出 1 個 大等腰直角三角形 。', pieces: ['sq2', 'isoRight2', 'isoRight2'], target: 'isoRightTri', hint: '正方形放左下角，右邊和上邊各貼 1 個等腰直角三角形。', solution: [{ type: 'sq2', x: 4, y: 5, rot: 0, flipX: false }, { type: 'isoRight2', x: 6, y: 7, rot: -90, flipX: false }, { type: 'isoRight2', x: 4, y: 5, rot: -90, flipX: false }] },
+  { diff: 'hard', cat: '用不同的圖形拼砌', prompt: '用 1 個 正方形（2×2） 和 2 個相同的 窄直角三角形（1×2） 拼砌出 1 個 梯形 。', pieces: ['sq2', 'narrow12', 'narrow12'], target: 'trapezoid', hint: '左右各貼 1 個垂直邊向內的窄直角三角形，下底變長為 4 格。', solution: [{ type: 'sq2', x: 5, y: 5, rot: 0, flipX: false }, { type: 'narrow12', x: 5, y: 5, rot: 0, flipX: true }, { type: 'narrow12', x: 7, y: 5, rot: 0, flipX: false }] },
+  { diff: 'hard', cat: '用不同的圖形拼砌', prompt: '用 1 個 直角梯形（高2） 和 1 個 等腰直角三角形 拼砌出 1 個 平行四邊形 。', pieces: ['rightTrap', 'isoRight2'], target: 'parallelogram', hint: '把等腰直角三角形旋轉 180° 貼在直角梯形左邊。', solution: [{ type: 'rightTrap', x: 4, y: 5, rot: 0, flipX: false }, { type: 'isoRight2', x: 4, y: 7, rot: 180, flipX: false }] },
+  { diff: 'hard', cat: '用相同的圖形拼砌', prompt: '用 4 個 形狀和大小都相同的 等邊三角形 拼砌出 1 個 大等邊三角形 。', pieces: ['eqTri2', 'eqTri2', 'eqTri2', 'eqTri2'], target: 'eqTri', hint: '底層 3 個等邊三角形拼成梯形，頂層再放 1 個正立等邊三角形。', solution: [{ type: 'eqTri2', x: 3, y: 7, rot: 0, flipX: false }, { type: 'eqTri2', x: 4, y: 7 - SQ3, rot: 60, flipX: false }, { type: 'eqTri2', x: 5, y: 7, rot: 0, flipX: false }, { type: 'eqTri2', x: 4, y: 7 - SQ3, rot: 0, flipX: false }] },
+  { diff: 'hard', cat: '用不同的圖形拼砌', prompt: '用 1 個 等邊梯形（3△） 和 2 個相同的 等邊三角形 拼砌出 1 個 梯形 。', pieces: ['eqTrap3', 'eqTri2', 'eqTri2'], target: 'trapezoid', hint: '兩個等邊三角形旋轉 180° 貼在等邊梯形左右斜邊上。', solution: [{ type: 'eqTrap3', x: 3, y: 7, rot: 0, flipX: false }, { type: 'eqTri2', x: 4, y: 7 - SQ3, rot: 180, flipX: false }, { type: 'eqTri2', x: 8, y: 7 - SQ3, rot: 180, flipX: false }] },
+  { diff: 'hard', cat: '用不同的圖形拼砌', prompt: '用 1 個 等邊梯形（3△） 和 1 個 等邊三角形 拼砌出 1 個 大等邊三角形 。', pieces: ['eqTrap3', 'eqTri2'], target: 'eqTri', hint: '正立等邊三角形疊放在等邊梯形頂邊上。', solution: [{ type: 'eqTrap3', x: 3, y: 7, rot: 0, flipX: false }, { type: 'eqTri2', x: 4, y: 7 - SQ3, rot: 0, flipX: false }] },
+  { diff: 'hard', cat: '用不同的圖形拼砌', prompt: '用 1 個 長方形（3×2） 和 2 個相同的 窄直角三角形（1×2） 拼砌出 1 個 梯形 。', pieces: ['rect32', 'narrow12', 'narrow12'], target: 'trapezoid', hint: '左右各貼 1 個垂直邊向內的窄直角三角形，拼出上底 3 格、下底 5 格的梯形。', solution: [{ type: 'rect32', x: 4, y: 5, rot: 0, flipX: false }, { type: 'narrow12', x: 4, y: 5, rot: 0, flipX: true }, { type: 'narrow12', x: 7, y: 5, rot: 0, flipX: false }] },
+  { diff: 'hard', cat: '用不同的圖形拼砌', prompt: '用 1 個 平行四邊形（3×2） 和 2 個相同的 窄直角三角形（1×2） 拼砌出 1 個 長方形 。', pieces: ['para32', 'narrow12', 'narrow12'], target: 'rectangle', hint: '左上角與右下角各補 1 個窄直角三角形，變成長 4 格、闊 2 格的長方形。', solution: [{ type: 'para32', x: 4, y: 5, rot: 0, flipX: false }, { type: 'narrow12', x: 4, y: 7, rot: 180, flipX: true }, { type: 'narrow12', x: 8, y: 5, rot: 0, flipX: true }] }
+];
+
+// 應用程式狀態
+let state = {
+  mode: 'mc', diff: 'all', idx: 0, score: 0, scoringOn: true,
+  solvedMc: new Set(), solvedBuild: new Set(),
+  kwTool: 'circle', circledWords: new Set(), mcSelected: null,
+  activePieces: [], selectedPieceIdx: -1, history: [], showingDemo: false
+};
+
+function getFilteredList() {
+  const src = state.mode === 'mc' ? MC_QUESTIONS : BUILD_QUESTIONS;
+  if (state.diff === 'all') return src.map((q, i) => ({ q, origIdx: i }));
+  return src.map((q, i) => ({ q, origIdx: i })).filter(item => item.q.diff === state.diff);
+}
+
+function updateTopStats() {
+  document.getElementById('scoreVal').textContent = state.scoringOn ? state.score : '—';
+  const totalDone = state.solvedMc.size + state.solvedBuild.size;
+  document.getElementById('doneCount').textContent = totalDone;
+  document.getElementById('progressFill').style.width = `${(totalDone / 60) * 100}%`;
+}
+
+function toggleScore() {
+  state.scoringOn = !state.scoringOn;
+  document.getElementById('toggleScoreBtn').textContent = `計分：${state.scoringOn ? '開' : '關'}`;
+  updateTopStats();
+}
+
+function resetScore() {
+  state.score = 0; state.solvedMc.clear(); state.solvedBuild.clear();
+  updateTopStats(); renderAll();
+}
+
+function switchMode(newMode) {
+  state.mode = newMode; state.idx = 0; state.mcSelected = null; state.showingDemo = false; state.circledWords.clear();
+  ['mc', 'build', 'sandbox'].forEach(m => document.getElementById(`tab-${m}`).classList.toggle('active', m === newMode));
+  if (newMode === 'build') initBuildPieces();
+  if (newMode === 'mc') initMcTrialPieces();
+  if (newMode === 'sandbox') { state.activePieces = []; state.selectedPieceIdx = -1; }
+  renderAll();
+}
+
+function setDiff(d) {
+  state.diff = d; state.idx = 0; state.mcSelected = null; state.showingDemo = false; state.circledWords.clear();
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    const map = { '全部': 'all', '易 ★☆☆': 'easy', '中 ★★☆': 'med', '難 ★★★': 'hard' };
+    btn.classList.toggle('active', map[btn.textContent] === d);
+  });
+  if (state.mode === 'build') initBuildPieces();
+  if (state.mode === 'mc') initMcTrialPieces();
+  renderAll();
+}
+
+function initMcTrialPieces() {
+  const list = getFilteredList();
+  if (!list.length) return;
+  const q = list[state.idx].q;
+  state.history = [];
+  if (q.trialType || q.trialDrag) {
+    state.activePieces = JSON.parse(JSON.stringify(q.visual));
+    state.selectedPieceIdx = 0;
+  } else {
+    state.activePieces = [];
+    state.selectedPieceIdx = -1;
+  }
+}
+
+function addMcTrialCopy() {
+  const list = getFilteredList();
+  const q = list[state.idx]?.q;
+  if (!q || !q.trialType) return;
+  if (state.activePieces.length >= 16) { setFeedback('err', '畫布最多可放置 16 張試拼圖卡！'); return; }
+  const n = state.activePieces.length;
+  state.activePieces.push({ type: q.trialType, x: 2 + (n % 4) * 2.5, y: 2 + Math.floor(n / 4) * 2.0, rot: 0, flipX: false });
+  state.selectedPieceIdx = state.activePieces.length - 1;
+  renderCanvas(); renderActionPanel();
+}
+
+function initBuildPieces() {
+  const list = getFilteredList();
+  if (!list.length) return;
+  const q = list[state.idx].q;
+  state.history = []; state.showingDemo = false;
+  state.activePieces = q.pieces.map((type, i) => ({ type, x: 1.5 + (i % 2) * 5.2, y: 2.5 + Math.floor(i / 2) * 3.8, rot: 0, flipX: false }));
+  state.selectedPieceIdx = 0;
+}
+
+function drawGridBackground(svg) {
+  svg.insertAdjacentHTML('beforeend', `<defs>
+    <pattern id="smallGrid" width="${GRID_STEP}" height="${GRID_STEP}" patternUnits="userSpaceOnUse" x="${OX}" y="${OY}">
+      <path d="M ${GRID_STEP} 0 L 0 0 0 ${GRID_STEP}" fill="none" stroke="#DBEAFE" stroke-width="1.2"/>
+      <circle cx="0" cy="0" r="2.2" fill="#93C5FD"/>
+    </pattern>
+  </defs><rect x="0" y="0" width="600" height="460" fill="url(#smallGrid)" />`);
+}
+
+function renderCanvas() {
+  const svg = document.getElementById('geoCanvas');
+  svg.innerHTML = '';
+  drawGridBackground(svg);
+  let piecesToDraw = [], highlightOuter = null;
+
+  if (state.mode === 'mc') {
+    const item = getFilteredList()[state.idx];
+    if (item) {
+      const isTrial = !!(item.q.trialType || item.q.trialDrag);
+      piecesToDraw = isTrial ? state.activePieces : item.q.visual;
+      const res = analyzeAssembly(piecesToDraw);
+      if (res.valid && piecesToDraw.length > 1) highlightOuter = res.outerPoly;
+    }
+  } else if (state.mode === 'build') {
+    const item = getFilteredList()[state.idx];
+    if (item) {
+      piecesToDraw = state.showingDemo ? item.q.solution : state.activePieces;
+      if (state.showingDemo) {
+        const res = analyzeAssembly(piecesToDraw);
+        if (res.valid) highlightOuter = res.outerPoly;
+      }
+    }
+  } else {
+    piecesToDraw = state.activePieces;
+    const res = analyzeAssembly(piecesToDraw);
+    if (res.valid && piecesToDraw.length > 1) highlightOuter = res.outerPoly;
+  }
+
+  piecesToDraw.forEach((p, idx) => {
+    const def = PIECE_DEFS[p.type];
+    const verts = getTransformedVerts(p.type, p.x, p.y, p.rot, p.flipX);
+    const ptsStr = verts.map(([vx, vy]) => `${OX + vx * GRID_STEP},${OY + vy * GRID_STEP}`).join(' ');
+    const isMcTrial = (state.mode === 'mc' && state.activePieces.length > 0);
+    const canDrag = (state.mode !== 'mc' && !state.showingDemo) || isMcTrial;
+    const isSel = (canDrag && idx === state.selectedPieceIdx);
+
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', ptsStr);
+    poly.setAttribute('fill', def.fill);
+    poly.setAttribute('fill-opacity', '0.88');
+    poly.setAttribute('stroke', isSel ? '#DC2626' : def.stroke);
+    poly.setAttribute('stroke-width', isSel ? '3.5' : '2.4');
+    poly.setAttribute('stroke-linejoin', 'round');
+    if (canDrag) { poly.style.cursor = 'grab'; poly.addEventListener('pointerdown', (e) => startDrag(e, idx)); }
+    svg.appendChild(poly);
+
+    verts.forEach(([vx, vy]) => {
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', OX + vx * GRID_STEP); c.setAttribute('cy', OY + vy * GRID_STEP);
+      c.setAttribute('r', isSel ? '3.8' : '2.6'); c.setAttribute('fill', isSel ? '#DC2626' : def.stroke);
+      c.style.pointerEvents = 'none'; svg.appendChild(c);
+    });
+  });
+
+  if (highlightOuter) {
+    const outStr = highlightOuter.map(([vx, vy]) => `${OX + vx * GRID_STEP},${OY + vy * GRID_STEP}`).join(' ');
+    const outPoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    outPoly.setAttribute('points', outStr); outPoly.setAttribute('fill', 'none');
+    outPoly.setAttribute('stroke', '#DC2626'); outPoly.setAttribute('stroke-width', '3.5');
+    outPoly.setAttribute('stroke-linejoin', 'round'); outPoly.style.pointerEvents = 'none';
+    svg.appendChild(outPoly);
+  }
+}
+
+// 拖拉與頂點對頂點／格點磁吸對齊
+let dragState = null;
+function startDrag(e, idx) {
+  e.preventDefault(); e.stopPropagation();
+  state.selectedPieceIdx = idx; saveHistory();
+  const svg = document.getElementById('geoCanvas'), pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const svgP = pt.matrixTransform(svg.getScreenCTM().inverse()), p = state.activePieces[idx];
+  dragState = { idx, offsetX: (svgP.x - OX) / GRID_STEP - p.x, offsetY: (svgP.y - OY) / GRID_STEP - p.y };
+  renderActionPanel(); renderCanvas();
+}
+
+window.addEventListener('pointermove', (e) => {
+  if (!dragState) return;
+  const svg = document.getElementById('geoCanvas'), pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const svgP = pt.matrixTransform(svg.getScreenCTM().inverse()), p = state.activePieces[dragState.idx];
+  let nx = (svgP.x - OX) / GRID_STEP - dragState.offsetX, ny = (svgP.y - OY) / GRID_STEP - dragState.offsetY;
+  const myVerts = getTransformedVerts(p.type, nx, ny, p.rot, p.flipX);
+  let bestDist = 0.35, snapDx = 0, snapDy = 0, snappedToPiece = false;
+
+  // 優先磁吸至其他圖卡頂點（完美支援等邊系列 √3 座標）
+  state.activePieces.forEach((other, oIdx) => {
+    if (oIdx === dragState.idx) return;
+    const oVerts = getTransformedVerts(other.type, other.x, other.y, other.rot, other.flipX);
+    for (const mv of myVerts) for (const ov of oVerts) {
+      const d = Math.hypot(ov[0] - mv[0], ov[1] - mv[1]);
+      if (d < bestDist) { bestDist = d; snapDx = ov[0] - mv[0]; snapDy = ov[1] - mv[1]; snappedToPiece = true; }
+    }
+  });
+
+  if (snappedToPiece) { nx += snapDx; ny += snapDy; }
+  else {
+    const rx = Math.round(nx * 2) / 2, ry = Math.round(ny * 2) / 2;
+    if (Math.hypot(rx - nx, ry - ny) < 0.25) { nx = rx; ny = ry; }
+  }
+  p.x = Math.max(0.2, Math.min(11.5, nx)); p.y = Math.max(0.5, Math.min(9.2, ny));
+  renderCanvas();
+  if (state.mode === 'sandbox') updateSandboxStatus();
+});
+
+window.addEventListener('pointerup', () => { dragState = null; });
+
+function saveHistory() { state.history.push(JSON.stringify(state.activePieces)); if (state.history.length > 25) state.history.shift(); }
+function undoMove() { if (!state.history.length) return; state.activePieces = JSON.parse(state.history.pop()); renderCanvas(); if (state.mode === 'sandbox') updateSandboxStatus(); }
+function rotateSelected() {
+  if (state.selectedPieceIdx < 0 || !state.activePieces[state.selectedPieceIdx]) return;
+  saveHistory(); const p = state.activePieces[state.selectedPieceIdx];
+  p.rot = (p.rot + (PIECE_DEFS[p.type].series === 'eq' ? 60 : 90)) % 360;
+  renderCanvas(); if (state.mode === 'sandbox') updateSandboxStatus();
+}
+function flipSelected() {
+  if (state.selectedPieceIdx < 0 || !state.activePieces[state.selectedPieceIdx]) return;
+  saveHistory(); const p = state.activePieces[state.selectedPieceIdx]; p.flipX = !p.flipX;
+  renderCanvas(); if (state.mode === 'sandbox') updateSandboxStatus();
+}
+
+// 圈重點字功能
+function setKwTool(t) { state.kwTool = t; document.getElementById('kwModeCircle').classList.toggle('active', t === 'circle'); document.getElementById('kwModeErase').classList.toggle('active', t === 'erase'); }
+function clearKw() { state.circledWords.clear(); renderPrompt(); }
+function renderPrompt() {
+  const container = document.getElementById('promptContainer');
+  const raw = state.mode === 'sandbox' ? '從下方圖卡庫加入多邊形，自由拼砌並觀察系統即時辨識的新圖形！' : (getFilteredList()[state.idx]?.q.prompt || '');
+  container.innerHTML = raw.split(/\s+/).map((tok, i) => `<span class="${state.circledWords.has(i) ? 'kw-token circled' : 'kw-token'}" onclick="toggleKw(${i})">${tok}</span>`).join(' ');
+}
+function toggleKw(i) {
+  if (state.kwTool === 'circle') { if (state.circledWords.has(i)) state.circledWords.delete(i); else state.circledWords.add(i); }
+  else state.circledWords.delete(i);
+  renderPrompt();
+}
+
+// 右側面板渲染
+function renderActionPanel() {
+  const panel = document.getElementById('actionPanel');
+  if (state.mode === 'mc') {
+    const item = getFilteredList()[state.idx]; if (!item) return;
+    let trialBar = '';
+    if (item.q.trialType || item.q.trialDrag) {
+      trialBar = `<div style="background:#EFF6FF;border:2px solid #93C5FD;border-radius:12px;padding:8px;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:800;color:#1E3A8A;margin-bottom:6px;">🛠 動手試拼區（目前畫布共 ${state.activePieces.length} 張圖卡）：</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${item.q.trialType ? `<button class="sb-add-btn" style="background:#DBEAFE;" onclick="addMcTrialCopy()">＋ 複製一張試拼</button>` : ''}
+          <button class="sb-add-btn" onclick="rotateSelected()">↻ 旋轉</button>
+          <button class="sb-add-btn" onclick="flipSelected()">⇄ 翻轉</button>
+          <button class="sb-add-btn" onclick="initMcTrialPieces();renderAll();">✕ 重設試拼</button>
+        </div></div>`;
+    }
+    panel.innerHTML = trialBar + `<div class="mc-grid">${item.q.options.map((opt, idx) => {
+      let cls = 'mc-opt';
+      if (state.mcSelected !== null) { if (idx === item.q.ans) cls += ' correct'; else if (idx === state.mcSelected) cls += ' wrong'; }
+      return `<button class="${cls}" onclick="answerMc(${idx})">${opt}</button>`;
+    }).join('')}</div>`;
+  } else if (state.mode === 'build') {
+    const item = getFilteredList()[state.idx]; if (!item) return;
+    const chips = item.q.pieces.map((t, i) => `<span class="${i === state.selectedPieceIdx ? 'piece-chip selected' : 'piece-chip'}" onclick="selectPiece(${i})" style="cursor:pointer;">${PIECE_DEFS[t].name}</span>`).join('');
+    panel.innerHTML = `<div style="font-size:12px;font-weight:800;color:#475569;margin-bottom:5px;">本題指定圖卡（必須全部用完、不可重疊）：</div>
+      <div class="piece-rack">${chips}</div>
+      <div class="btn-grid-2">
+        <button class="act-btn" onclick="rotateSelected()">↻ 順時針旋轉</button>
+        <button class="act-btn amber" onclick="flipSelected()">⇄ 水平翻轉</button>
+        <button class="act-btn" onclick="undoMove()">↶ 撤回一步</button>
+        <button class="act-btn" onclick="initBuildPieces();renderAll();">✕ 重排圖卡</button>
+      </div>
+      <button class="act-btn green" onclick="checkBuildAnswer()">✓ 檢查拼砌結果</button>
+      <button class="act-btn lavender" onclick="toggleDemo()">${state.showingDemo ? '隱藏示範答案（繼續自己拼）' : '示範答案（查看標準拼法）'}</button>`;
+  } else {
+    const gridKeys = ['isoRight2','right32','narrow12','sq2','rect32','para32','rightTrap','isoTrap2'];
+    const eqKeys = ['eqTri2','rhombus2','eqTrap3'];
+    panel.innerHTML = `<div class="sandbox-sec-title">① 方格系列（邊長／高 2 格，90°角）：</div>
+      <div class="sandbox-grid">${gridKeys.map(k => `<button class="sb-add-btn" onclick="addSandboxPiece('${k}')">+ ${PIECE_DEFS[k].name}</button>`).join('')}</div>
+      <div class="sandbox-sec-title">② 等邊系列（邊長 2 格，60°角）：</div>
+      <div class="sandbox-grid">${eqKeys.map(k => `<button class="sb-add-btn" onclick="addSandboxPiece('${k}')">+ ${PIECE_DEFS[k].name}</button>`).join('')}</div>
+      <div class="btn-grid-2">
+        <button class="act-btn" onclick="rotateSelected()">↻ 旋轉選取圖卡</button>
+        <button class="act-btn amber" onclick="flipSelected()">⇄ 翻轉選取圖卡</button>
+        <button class="act-btn" onclick="removeSelectedSandbox()">🗑 移除選取圖卡</button>
+        <button class="act-btn" onclick="state.activePieces=[];state.selectedPieceIdx=-1;renderAll();">✕ 清空畫布</button>
+      </div>`;
+  }
+}
+
+function selectPiece(i) { state.selectedPieceIdx = i; renderActionPanel(); renderCanvas(); }
+
+function answerMc(optIdx) {
+  const item = getFilteredList()[state.idx]; if (!item) return;
+  state.mcSelected = optIdx;
+  if (optIdx === item.q.ans) {
+    setFeedback('ok', `<strong>答對了！＋10 分</strong><br>${item.q.exp}`);
+    if (!state.solvedMc.has(item.origIdx)) { state.solvedMc.add(item.origIdx); if (state.scoringOn) state.score += 10; }
+  } else {
+    setFeedback('err', '<strong>再想一想！</strong><br>先圈出題目條件（如「最少」、「不可以」或「幾對對邊平行」），再看圖形或動手試拼。');
+  }
+  updateTopStats(); renderAll();
+}
+
+function checkBuildAnswer() {
+  if (state.showingDemo) { setFeedback('err', '目前正在顯示示範答案，請先按「隱藏示範答案」再自己動手拼砌！'); return; }
+  const item = getFilteredList()[state.idx]; if (!item) return;
+  const res = analyzeAssembly(state.activePieces);
+  if (!res.valid) { setFeedback('err', `<strong>還差一點點：</strong><br>${res.msg}`); return; }
+  const target = item.q.target;
+  if (target === 'parallelogram' && res.rights === 4) {
+    setFeedback('err', `<strong>這是一個更特別的「${res.exactName}」（有 4 個直角）！</strong><br>試試移動或旋轉圖卡，拼出一個<strong>沒有直角</strong>的平行四邊形！`); return;
+  }
+  if (res.matchedTypes.includes(target)) {
+    setFeedback('ok', `<strong>拼砌成功！＋15 分</strong><br>你成功拼出了「${res.exactName}」（外圍共 ${res.sides} 條邊、${res.rights} 個直角、${res.parPairs} 對對邊平行）！`);
+    if (!state.solvedBuild.has(item.origIdx)) { state.solvedBuild.add(item.origIdx); if (state.scoringOn) state.score += 15; }
+    updateTopStats(); renderHeaderAndDots();
+  } else {
+    setFeedback('err', `<strong>形狀未符合題目要求！</strong><br>你目前拼出的是「${res.exactName}」，題目要求拼出「${TARGET_NAMES[target]}」。`);
+  }
+}
+
+function toggleDemo() {
+  state.showingDemo = !state.showingDemo;
+  const item = getFilteredList()[state.idx];
+  if (state.showingDemo && item) setFeedback('', `<strong>已展示「${TARGET_NAMES[item.q.target]}」的標準拼法！</strong><br>粗紅線標示外圍輪廓，觀察長度相等的邊如何完全拍齊。`);
+  else if (item) setFeedback('', `<strong>提示：</strong><br>${item.q.hint}`);
+  renderActionPanel(); renderCanvas();
+}
+
+function addSandboxPiece(type) {
+  if (state.activePieces.length >= 8) { setFeedback('err', '自由工坊最多同時放置 8 張圖卡。'); return; }
+  saveHistory();
+  const offset = (state.activePieces.length % 4) * 0.7;
+  state.activePieces.push({ type, x: 3.5 + offset, y: 4.5 + offset, rot: 0, flipX: false });
+  state.selectedPieceIdx = state.activePieces.length - 1;
+  renderCanvas(); updateSandboxStatus();
+}
+
+function removeSelectedSandbox() {
+  if (state.selectedPieceIdx < 0) return;
+  saveHistory(); state.activePieces.splice(state.selectedPieceIdx, 1);
+  state.selectedPieceIdx = state.activePieces.length - 1;
+  renderCanvas(); updateSandboxStatus();
+}
+
+function updateSandboxStatus() {
+  if (state.activePieces.length === 0) { setFeedback('', '<strong>自由拼砌工坊已清空</strong><br>點擊上方按鈕加入同系列圖卡，把相等的邊拍齊！'); return; }
+  if (state.activePieces.length === 1) { setFeedback('', `<strong>目前畫布上有 1 張「${PIECE_DEFS[state.activePieces[0].type].name}」</strong><br>再加入同系列圖卡拖拉拍齊試試！`); return; }
+  const res = analyzeAssembly(state.activePieces);
+  if (res.valid) setFeedback('ok', `<strong>即時幾何辨識：${res.exactName}</strong><br>外圍共 <strong>${res.sides} 條邊</strong>、<strong>${res.rights} 個直角</strong>、<strong>${res.parPairs} 對對邊平行</strong>。`);
+  else setFeedback('err', `<strong>尚未連成完整多邊形</strong><br>${res.msg}`);
+}
+
+function setFeedback(type, html) {
+  const box = document.getElementById('feedbackBox');
+  box.className = 'feedback-box' + (type ? ' ' + type : '');
+  document.getElementById('feedbackText').innerHTML = html;
+}
+
+function prevQ() { const list = getFilteredList(); if (!list.length) return; state.idx = (state.idx - 1 + list.length) % list.length; onQuestionChange(); }
+function nextQ() { const list = getFilteredList(); if (!list.length) return; state.idx = (state.idx + 1) % list.length; onQuestionChange(); }
+function jumpQ(i) { state.idx = i; onQuestionChange(); }
+function onQuestionChange() {
+  state.mcSelected = null; state.showingDemo = false; state.circledWords.clear();
+  if (state.mode === 'build') initBuildPieces();
+  if (state.mode === 'mc') initMcTrialPieces();
+  renderAll();
+}
+
+function renderHeaderAndDots() {
+  const diffLabels = { easy: '易 ★☆☆', med: '中 ★★☆', hard: '難 ★★★' };
+  const diffFilters = document.getElementById('diffFilters'), navRow = document.getElementById('navRow');
+  if (state.mode === 'sandbox') {
+    document.getElementById('headerTitle').textContent = '模式 ③ 自由拼砌工坊（開放探索區）';
+    document.getElementById('solvedBadge').style.display = 'none';
+    diffFilters.style.display = 'none'; navRow.style.display = 'none';
+    document.getElementById('diffTagTop').textContent = '自由探索';
+    document.getElementById('modePill').textContent = '模式 ③ 自由拼砌工坊';
+    document.getElementById('catPill').textContent = '即時幾何辨識器';
+    return;
+  }
+  diffFilters.style.display = 'flex'; navRow.style.display = 'flex';
+  const list = getFilteredList(), item = list[state.idx]; if (!item) return;
+  document.getElementById('headerTitle').textContent = `第 ${state.idx + 1} 題 / 共 ${list.length} 題`;
+  const isDone = state.mode === 'mc' ? state.solvedMc.has(item.origIdx) : state.solvedBuild.has(item.origIdx);
+  document.getElementById('solvedBadge').style.display = isDone ? 'inline-block' : 'none';
+  document.getElementById('diffTagTop').textContent = diffLabels[item.q.diff];
+  document.getElementById('modePill').textContent = state.mode === 'mc' ? '模式 ① 辨認與MC挑戰' : '模式 ② 依指示拼砌';
+  document.getElementById('catPill').textContent = item.q.cat;
+  document.getElementById('qDots').innerHTML = list.map((it, i) => {
+    const done = state.mode === 'mc' ? state.solvedMc.has(it.origIdx) : state.solvedBuild.has(it.origIdx);
+    let cls = 'q-dot'; if (done) cls += ' done'; if (i === state.idx) cls += ' current';
+    return `<button class="${cls}" onclick="jumpQ(${i})">${i + 1}</button>`;
+  }).join('');
+}
+
+function renderAll() {
+  renderHeaderAndDots(); renderPrompt(); renderActionPanel(); renderCanvas();
+  if (state.mode === 'mc' && state.mcSelected === null) setFeedback('', '<strong>先圈出題目重點字，再細心推理！</strong><br>記住：接駁位形成直線只算同一條邊。');
+  else if (state.mode === 'build' && !state.showingDemo) {
+    const item = getFilteredList()[state.idx];
+    if (item) setFeedback('', `<strong>提示：</strong><br>${item.q.hint}`);
+  } else if (state.mode === 'sandbox') updateSandboxStatus();
+}
+
+window.addEventListener('DOMContentLoaded', () => { initMcTrialPieces(); updateTopStats(); renderAll(); });
+</script>
+</body>
+</html>
